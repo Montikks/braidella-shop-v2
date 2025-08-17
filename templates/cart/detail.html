@@ -1,0 +1,50 @@
+{% extends "base.html" %}
+{% block title %}Košík – Braidella{% endblock %}
+{% block content %}
+  <h2>Košík</h2>
+
+  {% if items %}
+    <table border="0" cellpadding="6" cellspacing="0" style="border-collapse: collapse; min-width: 360px;">
+  <thead>
+    <tr>
+      <th align="left">Produkt</th>
+      <th align="right">Ks</th>
+      <th align="right">Cena</th>
+      <th align="right">Mezisoučet</th>
+    </tr>
+  </thead>
+  <tbody>
+    {% for item in items %}
+      <tr>
+        <td>{{ item.product.name }}</td>
+        <td align="right">
+          <form action="{% url 'cart:update' %}" method="post" style="display:inline">
+            {% csrf_token %}
+            <input type="hidden" name="key" value="{{ item.key }}">
+            <input type="number" name="qty" value="{{ item.qty }}" min="0"
+                   {% if item.product.stock %}max="{{ item.product.stock }}"{% endif %}
+                   style="width:60px" onchange="this.form.submit()">
+          </form>
+          <form action="{% url 'cart:remove' item.key %}" method="post" style="display:inline; margin-left:6px">
+            {% csrf_token %}
+            <button type="submit">Odebrat</button>
+          </form>
+        </td>
+        <td align="right">{{ item.price }} Kč</td>
+        <td align="right"><strong>{{ item.subtotal }} Kč</strong></td>
+      </tr>
+    {% endfor %}
+  </tbody>
+</table>
+
+    <p style="margin-top: 8px;"><strong>Celkem: {{ total }} Kč</strong></p>
+      <p style="margin-top: 12px;">
+  <a href="{% url 'checkout:address' %}"><strong>Pokračovat k pokladně →</strong></a>
+</p>
+
+    <p><a href="/">Pokračovat v nákupu</a></p>
+  {% else %}
+    <p>Košík je prázdný.</p>
+    <p><a href="/">Pokračovat v nákupu</a></p>
+  {% endif %}
+{% endblock %}

@@ -1,0 +1,20 @@
+Dobrý den {{ order.first_name }} {{ order.last_name }},
+
+děkujeme za Vaši objednávku #{{ order.id }}.
+
+Souhrn:
+{% for item in order.items.all %}
+- {{ item.name_snapshot }} × {{ item.qty }} … {{ item.subtotal }} Kč
+{% endfor %}
+Celkem: {{ order.total }} Kč
+
+Doručení:
+{% if order.delivery_method == "balikovna" %}
+Balíkovna: {{ order.balikovna_id }} ({{ order.balikovna_code }})
+{% else %}
+{{ order.street }}
+{{ order.zip_code }} {{ order.city }}
+{% endif %}
+
+Brzy Vás budeme informovat o dalším postupu.
+Tým Braidella

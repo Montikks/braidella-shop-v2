@@ -1,0 +1,36 @@
+{% load static %}
+<!-- Overlay -->
+<div id="cart-overlay" class="fixed inset-0 bg-black/40 z-40 hidden"></div>
+
+<!-- Drawer -->
+<aside id="cart-drawer"
+  class="fixed top-0 right-0 h-full w-[380px] max-w-[100vw] bg-white z-50 shadow-xl transform translate-x-full transition-transform duration-300">
+  <header class="flex items-center justify-between px-4 py-3 border-b">
+    <h3 class="text-lg font-semibold">Nákupní košík</h3>
+    <button type="button" class="p-2" onclick="window.closeCartDrawer()">
+      <span class="sr-only">Zavřít</span>
+      ✕
+    </button>
+  </header>
+  <div id="cart-drawer-body" class="p-4 overflow-y-auto h-[calc(100%-60px)]">
+    <!-- sem se načte obsah mini-košíku -->
+    <div class="text-gray-500 text-sm">Načítám košík…</div>
+  </div>
+</aside>
+
+<script>
+window.openCartDrawer = function(){
+  const o = document.getElementById('cart-overlay');
+  const d = document.getElementById('cart-drawer');
+  if(o) o.classList.remove('hidden');
+  if(d) d.classList.remove('translate-x-full');
+  // zavření klikem na overlay
+  if(o) o.onclick = window.closeCartDrawer;
+};
+window.closeCartDrawer = function(){
+  const o = document.getElementById('cart-overlay');
+  const d = document.getElementById('cart-drawer');
+  if(o) o.classList.add('hidden');
+  if(d) d.classList.add('translate-x-full');
+};
+</script>

@@ -1,0 +1,78 @@
+{% extends "base.html" %}
+{% block title %}Pokladna | Braidella{% endblock %}
+{% load widget_tweaks %}
+
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Pokladna</h1>
+
+<div class="grid lg:grid-cols-3 gap-8">
+  <!-- Formulář -->
+  <div class="lg:col-span-2">
+    <form method="post" class="space-y-4">
+      {% csrf_token %}
+
+      <div class="grid sm:grid-cols-2 gap-4">
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">{{ form.full_name.label }}</label>
+          {{ form.full_name|add_class:"w-full border rounded px-3 py-2" }}
+          {{ form.full_name.errors }}
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">{{ form.email.label }}</label>
+          {{ form.email|add_class:"w-full border rounded px-3 py-2" }}
+          {{ form.email.errors }}
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">{{ form.phone.label }}</label>
+          {{ form.phone|add_class:"w-full border rounded px-3 py-2" }}
+          {{ form.phone.errors }}
+        </div>
+        <div></div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm text-gray-600 mb-1">{{ form.street.label }}</label>
+          {{ form.street|add_class:"w-full border rounded px-3 py-2" }}
+          {{ form.street.errors }}
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">{{ form.city.label }}</label>
+          {{ form.city|add_class:"w-full border rounded px-3 py-2" }}
+          {{ form.city.errors }}
+        </div>
+        <div>
+          <label class="block text-sm text-gray-600 mb-1">{{ form.zip_code.label }}</label>
+          {{ form.zip_code|add_class:"w-full border rounded px-3 py-2" }}
+          {{ form.zip_code.errors }}
+        </div>
+        <div class="sm:col-span-2">
+          <label class="block text-sm text-gray-600 mb-1">{{ form.note.label }}</label>
+          {{ form.note|add_class:"w-full border rounded px-3 py-2" }}
+          {{ form.note.errors }}
+        </div>
+      </div>
+
+      <button class="px-5 py-3 bg-gray-900 text-white rounded">
+        Pokračovat (výběr dopravy)
+      </button>
+    </form>
+  </div>
+
+  <!-- Souhrn košíku -->
+  <aside class="border rounded-lg p-4 h-fit">
+    <h3 class="font-medium mb-3">Souhrn objednávky</h3>
+    <div class="space-y-3">
+      {% for item in cart.items %}
+        <div class="flex justify-between text-sm">
+          <span class="truncate">{{ item.product.name }} × {{ item.qty }}</span>
+          <span class="font-semibold">{{ item.total }} Kč</span>
+        </div>
+      {% endfor %}
+    </div>
+    <div class="mt-4 border-t pt-3 flex justify-between">
+      <span>Mezisoučet</span>
+      <span class="font-semibold">{{ cart.subtotal }} Kč</span>
+    </div>
+    <p class="text-xs text-gray-500 mt-2">Dopravu a platbu zvolíš v dalším kroku.</p>
+  </aside>
+</div>
+{% endblock %}

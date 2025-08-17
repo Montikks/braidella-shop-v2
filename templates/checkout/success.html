@@ -1,0 +1,9 @@
+{% extends "base.html" %}
+{% block title %}Objednávka odeslána{% endblock %}
+{% block content %}
+  <h2>Děkujeme! 🎉</h2>
+  <p>Vaše objednávka byla přijata.</p>
+  <p>Číslo objednávky: <strong>#{{ order.id }}</strong></p>
+  <p>Rekapitulaci najdete také v administraci.</p>
+  <p><a href="/">← Zpět do obchodu</a></p>
+{% endblock %}

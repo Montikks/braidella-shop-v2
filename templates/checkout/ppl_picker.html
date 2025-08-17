@@ -1,0 +1,33 @@
+{% extends "base.html" %}
+{% block title %}Vybrat PPL výdejnu{% endblock %}
+{% block content %}
+  <h2>Vyberte výdejní místo PPL</h2>
+  <!--
+    PPL widget potřebuje načíst styly a skript. Tato šablona vytvoří kontejner
+    pro mapu a vloží standardní widget. Po výběru pobočky widget vyšle zprávu
+    přes postMessage, kterou zachytíme, předáme do parent okna a zavřeme.
+  -->
+  <div id="ppl-parcelshop-map" data-language="cs" data-country="cz" data-mode="default" style="width:100%; height:80vh;"></div>
+
+  <!-- Načtení widgetu PPL: styly + skript -->
+  <link rel="stylesheet" href="https://www.ppl.cz/sources/map/main.css">
+  <script type="text/javascript" src="https://www.ppl.cz/sources/map/main.js" async></script>
+
+  <script>
+    // Přepošleme vybranou pobočku do parent okna a zavřeme pop-up.
+    window.addEventListener('message', function (event) {
+      var data = event.data || {};
+      // PPL widget posílá event typu pplPickupPointSelected
+      if (data && data.event === 'pplPickupPointSelected') {
+        try {
+          if (window.opener) {
+            window.opener.postMessage({ source: 'ppl-picker', data: data }, window.location.origin);
+          }
+        } catch (err) {
+          // swallow
+        }
+        window.close();
+      }
+    });
+  </script>
+{% endblock %}

@@ -1,0 +1,23 @@
+{% extends "base.html" %}
+{% block title %}Vybrat Balíkovnu{% endblock %}
+{% block content %}
+  <h2>Vyberte výdejní místo Balíkovny</h2>
+  <iframe
+    src="https://b2c.cpost.cz/locations/?type=BALIKOVNY"
+    style="width:100%; height:80vh; border:0"
+    allow="geolocation">
+  </iframe>
+
+  <script>
+    window.addEventListener("message", function (e) {
+      if (!e.origin.includes("cpost.cz")) return;   // bezpečnost: jen Balíkovna
+      const data = e.data || {};
+      try {
+        if (window.opener) {
+          window.opener.postMessage({ source: "balikovna-picker", data: data }, window.location.origin);
+        }
+      } catch (err) {}
+      window.close();
+    });
+  </script>
+{% endblock %}

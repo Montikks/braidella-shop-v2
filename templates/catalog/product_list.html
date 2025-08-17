@@ -1,0 +1,117 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Obchod | Braidella{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Produkty</h1>
+
+<form method="get" class="flex flex-wrap gap-3 items-center mb-6">
+  <input type="text" name="q" value="{{ q }}" placeholder="Hledat…" class="border px-3 py-2 rounded w-64">
+  <select name="order" class="border px-3 py-2 rounded">
+    <option value="">Řazení: název</option>
+    <option value="price" {% if order == 'price' %}selected{% endif %}>Cena ↑</option>
+    <option value="-price" {% if order == '-price' %}selected{% endif %}>Cena ↓</option>
+  </select>
+  <button class="px-4 py-2 bg-gray-900 text-white rounded">OK</button>
+</form>
+
+<nav class="flex gap-3 flex-wrap mb-6">
+  <a href="{% url 'catalog:product_list' %}" class="text-sm underline">Vše</a>
+  {% for c in categories %}
+    <a href="{{ c.get_absolute_url }}" class="text-sm hover:underline">{{ c.name }}</a>
+  {% endfor %}
+</nav>
+
+{% if products %}
+  <div class="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
+    {% for p in products %}
+      <div class="border rounded-lg overflow-hidden hover:shadow flex flex-col">
+        <a href="{{ p.get_absolute_url }}" class="block">
+          <div class="aspect-square bg-gray-50">
+            {% if p.image %}
+              <img src="{{ p.image.url }}" alt="{{ p.name }}" class="w-full h-full object-cover">
+            {% else %}
+              <img src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/img/product/1.jpg' %}" class="w-full h-full object-cover" alt="">
+            {% endif %}
+          </div>
+        </a>
+        <div class="p-3 flex-1 flex flex-col gap-1">
+          <div class="text-xs text-gray-500">{{ p.category.name }}</div>
+          <a href="{{ p.get_absolute_url }}" class="font-medium hover:underline">{{ p.name }}</a>
+          <div class="mt-1 font-semibold">{{ p.price }} Kč</div>
+
+          {% if p.slug %}
+          <!-- Přidat do košíku (AJAX, žádný redirect) -->
+          <form class="mt-2 js-add-to-cart" data-url="{% url 'cart:add_ajax' p.slug %}">
+            {% csrf_token %}
+            <input type="hidden" name="qty" value="1">
+            <button type="submit" class="w-full px-3 py-2 border rounded hover:bg-gray-50">
+              Přidat do košíku
+            </button>
+          </form>
+          {% endif %}
+        </div>
+      </div>
+    {% endfor %}
+  </div>
+
+  {% if is_paginated %}
+    <div class="mt-8 flex justify-center gap-2">
+      {% if page_obj.has_previous %}
+        <a class="px-3 py-2 border rounded" href="?page={{ page_obj.previous_page_number }}&q={{ q }}&order={{ order }}">Předchozí</a>
+      {% endif %}
+      <span class="px-3 py-2">{{ page_obj.number }} / {{ page_obj.paginator.num_pages }}</span>
+      {% if page_obj.has_next %}
+        <a class="px-3 py-2 border rounded" href="?page={{ page_obj.next_page_number }}&q={{ q }}&order={{ order }}">Další</a>
+      {% endif %}
+    </div>
+  {% endif %}
+{% else %}
+  <p class="text-gray-500">Žádné produkty.</p>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+<script>
+(function(){
+  function bindAjaxAdd(form){
+    form.addEventListener("submit", function(e){
+      e.preventDefault();
+
+      const url = form.dataset.url;
+      const csrf = form.querySelector('input[name="csrfmiddlewaretoken"]').value;
+      const qtyEl = form.querySelector('input[name="qty"]');
+      const fd = new FormData();
+      fd.append("qty", qtyEl ? qtyEl.value : 1);
+
+      // UX: disable tlačítko během requestu
+      const btn = form.querySelector('button[type="submit"]');
+      const prevText = btn ? btn.textContent : null;
+      if (btn) { btn.disabled = true; btn.textContent = "Přidávám…"; }
+
+      fetch(url, { method:"POST", headers:{ "X-CSRFToken": csrf }, body: fd })
+        .then(r => r.json())
+        .then(data => {
+          if (!data.ok) throw new Error(data.message || "Nepodařilo se přidat");
+
+          // badge
+          const cc = document.getElementById("cart-count");
+          if (cc) cc.textContent = data.cart_count;
+
+          // nasypat HTML do draweru
+          const body = document.getElementById("cart-drawer-body");
+          if (body && data.html){ body.innerHTML = data.html; }
+
+          // otevřít drawer
+          if (window.openCartDrawer) window.openCartDrawer();
+        })
+        .catch(err => alert(err.message || "Chyba spojení se serverem."))
+        .finally(() => {
+          if (btn) { btn.disabled = false; btn.textContent = prevText || "Přidat do košíku"; }
+        });
+    });
+  }
+  document.querySelectorAll(".js-add-to-cart").forEach(bindAjaxAdd);
+})();
+</script>
+{% endblock %}

@@ -1,0 +1,32 @@
+<!doctype html>
+<html lang="cs">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>{% block title %}Braidella{% endblock %}</title>
+</head>
+<body>
+  <header>
+      {% if messages %}
+  <ul>{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
+{% endif %}
+  <h1><a href="/">Braidella</a></h1>
+  <nav>
+    <a href="/">Domů</a> |
+    <a href="/k/">Kategorie</a> |
+    <a href="/cart/">Košík</a> |
+    <a href="/admin/">Admin</a>
+  </nav>
+  <hr/>
+</header>
+
+  <main>
+    {% block content %}{% endblock %}
+  </main>
+
+  <footer>
+    <hr/>
+    <small>&copy; {{ now|default:"" }} Braidella</small>
+  </footer>
+</body>
+</html>

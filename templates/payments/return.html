@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Platba{% endblock %}
+{% block content %}
+  <h2>Stav platby</h2>
+  {% if order.status == "paid" %}
+    <p>Objednávka #{{ order.id }} byla <strong>zaplacena</strong>. Děkujeme!</p>
+  {% else %}
+    <p>Objednávka #{{ order.id }} je ve stavu: <strong>{{ order.status }}</strong>.
+       Pokud jste platbu přerušili, můžete to zkusit znovu z rekapitulace.</p>
+  {% endif %}
+  <p><a href="{% url 'home' %}">← Zpět na úvod</a></p>
+{% endblock %}

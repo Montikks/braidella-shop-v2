@@ -1,0 +1,12 @@
+{% extends "base.html" %}
+{% block title %}Objednávka dokončena | Braidella{% endblock %}
+
+{% block content %}
+<div class="max-w-xl mx-auto text-center py-16">
+  <h1 class="text-2xl font-semibold mb-3">Děkujeme za objednávku!</h1>
+  <p class="text-gray-600">Objednávka byla úspěšně odeslána. Potvrzení jsme vám poslali e‑mailem.</p>
+  <a href="{% url 'catalog:product_list' %}" class="inline-block mt-6 px-5 py-3 bg-gray-900 text-white rounded hover:bg-gray-800">
+    Pokračovat v nákupu
+  </a>
+</div>
+{% endblock %}

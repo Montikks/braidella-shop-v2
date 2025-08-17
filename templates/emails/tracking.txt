@@ -1,0 +1,11 @@
+Dobrý den {{ order.first_name }} {{ order.last_name }},
+
+vaše objednávka #{{ order.id }} byla odeslána.
+
+Podací číslo: {{ order.tracking_code }}
+{% with url=order.tracking_url %}
+{% if url %}Sledování zásilky: {{ url }}{% endif %}
+{% endwith %}
+
+Děkujeme za nákup!
+Tým Braidella

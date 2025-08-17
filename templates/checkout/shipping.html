@@ -1,0 +1,442 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Doprava a platba | Braidella{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Doprava a platba</h1>
+
+<form method="post" class="space-y-8" id="shipping-form">
+  {% csrf_token %}
+
+  <!-- Skrytá pole pro backend -->
+  <input type="hidden" name="method" id="method_id">
+  <input type="hidden" name="pickup_provider" id="pickup_provider">
+  <input type="hidden" name="pickup_point_id" id="pickup_point_id">
+  <input type="hidden" name="pickup_point_label" id="pickup_point_label">
+
+  <!-- Přehled dopravců -->
+  <section class="space-y-4">
+    <h2 class="text-xl font-medium">Zvolte dopravce</h2>
+
+    <div class="grid lg:grid-cols-3 gap-4">
+      <!-- Balíkovna -->
+      <label class="ship-card border rounded-lg p-4 flex gap-3 cursor-pointer" data-carrier="balikovna">
+        <input type="radio" name="carrier" value="balikovna" class="mt-1" checked>
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <img src="{% static 'img/shipping/balikovna.png' %}" alt="Balíkovna" class="w-6 h-6">
+            <span class="font-medium">Balíkovna</span>
+            <span class="ml-auto hidden ship-selected text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">vybráno</span>
+          </div>
+          <div class="text-sm text-gray-600 mt-1">Na adresu nebo na výdejní místo</div>
+        </div>
+      </label>
+
+      <!-- PPL -->
+      <label class="ship-card border rounded-lg p-4 flex gap-3 cursor-pointer" data-carrier="ppl">
+        <input type="radio" name="carrier" value="ppl" class="mt-1">
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <img src="{% static 'img/shipping/ppl.png' %}" alt="PPL" class="w-6 h-6">
+            <span class="font-medium">PPL</span>
+            <span class="ml-auto hidden ship-selected text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">vybráno</span>
+          </div>
+          <div class="text-sm text-gray-600 mt-1">Na adresu nebo na výdejní místo (fallback PSČ)</div>
+        </div>
+      </label>
+
+      <!-- Zásilkovna -->
+      <label class="ship-card border rounded-lg p-4 flex gap-3 cursor-pointer" data-carrier="zasilkovna">
+        <input type="radio" name="carrier" value="zasilkovna" class="mt-1">
+        <div class="flex-1">
+          <div class="flex items-center gap-2">
+            <img src="{% static 'img/shipping/zasilkovna.png' %}" alt="Zásilkovna" class="w-6 h-6">
+            <span class="font-medium">Zásilkovna</span>
+            <span class="ml-auto hidden ship-selected text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700">vybráno</span>
+          </div>
+          <div class="text-sm text-gray-600 mt-1">Pouze výdejní místo</div>
+        </div>
+      </label>
+    </div>
+  </section>
+
+  <!-- Režimy pro vybraného dopravce -->
+  <section class="space-y-6">
+    <h2 class="text-xl font-medium">Způsob doručení</h2>
+
+    <!-- Balíkovna: domů / výdejní místo -->
+    <div class="carrier-panel" data-carrier="balikovna">
+      <div class="flex gap-4 mb-3">
+        <label class="mode-card inline-flex items-center gap-2 px-3 py-2 border rounded cursor-pointer" data-mode="home">
+          <input type="radio" name="balikovna_mode" value="home" checked>
+          <span>Na adresu</span>
+        </label>
+        <label class="mode-card inline-flex items-center gap-2 px-3 py-2 border rounded cursor-pointer" data-mode="pickup">
+          <input type="radio" name="balikovna_mode" value="pickup">
+          <span>Výdejní místo</span>
+        </label>
+      </div>
+
+      <!-- Adresa -->
+      <div class="balikovna-home space-y-2">
+        <p class="text-sm text-gray-600">Doručení na adresu (adresa je z kroku „Kontaktní údaje“).</p>
+        <div id="balikovna-home-summary" class="text-xs text-gray-700"></div>
+      </div>
+
+      <!-- Výdejní místo (oficiální iframe) -->
+      <div class="balikovna-pickup hidden">
+        <button type="button" id="open-balikovna" class="px-4 py-2 border rounded hover:bg-gray-50">
+          Vybrat výdejní místo Balíkovna
+        </button>
+        <div id="balikovna-result" class="mt-2 text-sm text-gray-700"></div>
+
+        <div id="balikovna-modal" class="fixed inset-0 bg-black/50 items-center justify-center hidden z-50">
+          <div class="bg-white w-full max-w-3xl h-[640px] rounded-lg overflow-hidden relative">
+            <button type="button" class="absolute top-2 right-2 px-3 py-1 border rounded bg-white" id="close-balikovna">Zavřít</button>
+            <iframe
+              id="balikovna-iframe"
+              title="Výběr místa Balíkovna"
+              src="https://b2c.cpost.cz/locations/?type=BALIKOVNY&skipLocation"
+              class="w-full h-full border-0"
+              allow="geolocation"
+              referrerpolicy="no-referrer-when-downgrade"
+            ></iframe>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- PPL: domů / výdejní místo (fallback PSČ) -->
+    <div class="carrier-panel hidden" data-carrier="ppl">
+      <div class="flex gap-4 mb-3">
+        <label class="mode-card inline-flex items-center gap-2 px-3 py-2 border rounded cursor-pointer" data-mode="home">
+          <input type="radio" name="ppl_mode" value="home" checked>
+          <span>Na adresu</span>
+        </label>
+        <label class="mode-card inline-flex items-center gap-2 px-3 py-2 border rounded cursor-pointer" data-mode="pickup">
+          <input type="radio" name="ppl_mode" value="pickup">
+          <span>Výdejní místo</span>
+        </label>
+      </div>
+
+      <!-- Adresa -->
+      <div class="ppl-home space-y-2">
+        <p class="text-sm text-gray-600">Doručení na adresu (adresa je z kroku „Kontaktní údaje“).</p>
+        <div id="ppl-home-summary" class="text-xs text-gray-700"></div>
+      </div>
+
+      <!-- Výdejní místo: fallback vyhledávání podle PSČ -->
+      <div class="ppl-pickup hidden">
+        <div class="flex items-end gap-3">
+          <div>
+            <label class="text-sm text-gray-700">PSČ</label>
+            <input type="text" id="ppl-zip" class="border rounded px-3 py-2 w-36" placeholder="např. 17000">
+          </div>
+          <button type="button" id="ppl-lookup-btn" class="px-4 py-2 border rounded hover:bg-gray-50">
+            Najít výdejní místa
+          </button>
+        </div>
+
+        <div id="ppl-result" class="mt-3 text-sm text-gray-700"></div>
+        <div id="ppl-list" class="mt-3 space-y-2"></div>
+      </div>
+    </div>
+
+    <!-- Zásilkovna: pouze výdejní místo -->
+    <div class="carrier-panel hidden" data-carrier="zasilkovna">
+      <div class="mb-2 text-sm text-gray-600">Zásilkovna nabízí doručení na výdejní místa.</div>
+      <button type="button" id="open-packeta" class="px-4 py-2 border rounded hover:bg-gray-50">
+        Vybrat výdejní místo Zásilkovna
+      </button>
+      <div id="packeta-result" class="mt-2 text-sm text-gray-700"></div>
+    </div>
+  </section>
+
+  <!-- Platba -->
+  <section class="space-y-4">
+    <h2 class="text-xl font-medium">Platba</h2>
+    <div class="grid md:grid-cols-2 gap-4">
+      <label class="pay-card border rounded-lg p-4 flex gap-3 cursor-pointer" data-pay="card">
+        <input type="radio" name="payment_method" value="card" class="mt-1" checked>
+        <div>
+          <div class="font-medium">Kartou online (GoPay)</div>
+          <div class="text-sm text-gray-600">Zaplatíte bezpečně kartou.</div>
+        </div>
+      </label>
+
+      <label class="pay-card border rounded-lg p-4 flex gap-3 cursor-pointer js-cod-row" data-pay="cod">
+        <input type="radio" name="payment_method" value="cod" class="mt-1">
+        <div>
+          <div class="font-medium">Dobírka</div>
+          <div class="text-sm text-gray-600">+ dobírkový poplatek {{ cod_fee }} Kč (jen pokud dopravce dobírku podporuje).</div>
+        </div>
+      </label>
+    </div>
+    <div id="cod-note" class="text-xs text-amber-600 hidden">Zvolená doprava nepodporuje dobírku – přepnuto na platbu kartou.</div>
+  </section>
+
+  <div class="pt-2 flex items-center justify-between">
+    <a href="{% url 'cart:detail' %}" class="text-sm underline">Zpět do košíku</a>
+    <button class="px-5 py-3 bg-gray-900 text-white rounded hover:bg-gray-800">Pokračovat na potvrzení</button>
+  </div>
+</form>
+{% endblock %}
+
+{% block scripts %}
+<!-- Packeta (Zásilkovna) -->
+<script src="https://widget.packeta.com/www/js/library.js"></script>
+
+<script>
+(function () {
+  const $  = s => document.querySelector(s);
+  const $$ = s => document.querySelectorAll(s);
+  const show = el => { if (!el) return; el.classList.remove('hidden'); el.classList.add('block'); };
+  const hide = el => { if (!el) return; el.classList.add('hidden'); el.classList.remove('block'); };
+
+  // --- Metody z backendu ---
+  const METHODS = [
+    {% for m in methods %}
+      {
+        id: {{ m.id }},
+        provider: "{{ m.provider|default_if_none:'' }}",
+        type: "{{ m.type }}",
+        price: "{{ m.price }}",
+        cod_supported: {{ m.cod_supported|yesno:"true,false" }},
+        name: "{{ m.name|escapejs }}"
+      }{% if not forloop.last %},{% endif %}
+    {% endfor %}
+  ];
+
+  function findMethodId(provider, type){
+    const m = METHODS.find(x => x.provider === provider && x.type === type);
+    return m ? m.id : "";
+  }
+  function getMethod(provider, type){
+    return METHODS.find(x => x.provider === provider && x.type === type) || null;
+  }
+
+  // Skrytá pole
+  const hidMethod = $('#method_id');
+  const hidProv   = $('#pickup_provider');
+  const hidId     = $('#pickup_point_id');
+  const hidLabel  = $('#pickup_point_label');
+
+  // Grafické zvýraznění
+  function markSelectedCards(){
+    $$('.ship-card').forEach(card => {
+      const inp = card.querySelector('input[type="radio"]');
+      const chip = card.querySelector('.ship-selected');
+      if (inp && inp.checked) {
+        card.classList.add('ring-2','ring-indigo-500','border-indigo-600');
+        chip && chip.classList.remove('hidden');
+      } else {
+        card.classList.remove('ring-2','ring-indigo-500','border-indigo-600');
+        chip && chip.classList.add('hidden');
+      }
+    });
+    $$('.mode-card').forEach(card => {
+      const inp = card.querySelector('input[type="radio"]');
+      if (inp && inp.checked) {
+        card.classList.add('ring-2','ring-indigo-500','border-indigo-600','bg-indigo-50');
+      } else {
+        card.classList.remove('ring-2','ring-indigo-500','border-indigo-600','bg-indigo-50');
+      }
+    });
+    $$('.pay-card').forEach(card => {
+      const inp = card.querySelector('input[type="radio"]');
+      if (inp && inp.checked) {
+        card.classList.add('ring-2','ring-emerald-500','border-emerald-600','bg-emerald-50');
+      } else {
+        card.classList.remove('ring-2','ring-emerald-500','border-emerald-600','bg-emerald-50');
+      }
+    });
+  }
+
+  // Přepínání dopravců
+  function selectCarrier(val){
+    $$('.carrier-panel').forEach(p => hide(p));
+    const target = document.querySelector(`.carrier-panel[data-carrier="${val}"]`);
+    if (target) show(target);
+
+    // reset výdejního místa
+    hidProv.value = ''; hidId.value = ''; hidLabel.value = '';
+    ['#balikovna-result','#ppl-result','#packeta-result'].forEach(sel => {
+      const el = $(sel); if (el) el.textContent = '';
+    });
+    const pplList = $('#ppl-list'); if (pplList) pplList.innerHTML = '';
+
+    updateMethodId();
+    updateCODState();
+    markSelectedCards();
+  }
+
+  $$('input[name="carrier"]').forEach(r => r.addEventListener('change', e => selectCarrier(e.target.value)));
+  const initialCarrier = document.querySelector('input[name="carrier"]:checked');
+  if (initialCarrier) selectCarrier(initialCarrier.value);
+
+  // Přepínače režimů: Balíkovna / PPL
+  function bindModeSwitch(group, homeSel, pickupSel, resultSel){
+    function refresh(){
+      const isPickup = document.querySelector(`input[name="${group}"][value="pickup"]`)?.checked;
+      const homeEl = document.querySelector(homeSel);
+      const pickEl = document.querySelector(pickupSel);
+      if (isPickup){ hide(homeEl); show(pickEl); }
+      else { show(homeEl); hide(pickEl); }
+      // při přepnutí smažeme případný výběr bodu
+      hidProv.value = ''; hidId.value = ''; hidLabel.value = '';
+      const res = document.querySelector(resultSel); if (res) res.textContent = '';
+      const pplList = $('#ppl-list'); if (pplList) pplList.innerHTML = '';
+      updateMethodId();
+      updateCODState();
+      markSelectedCards();
+    }
+    $$(`input[name="${group}"]`).forEach(r => r.addEventListener('change', refresh));
+    refresh();
+  }
+  bindModeSwitch('balikovna_mode', '.balikovna-home', '.balikovna-pickup', '#balikovna-result');
+  bindModeSwitch('ppl_mode', '.ppl-home', '.ppl-pickup', '#ppl-result');
+
+  // Nastavení method_id podle výběru
+  function currentCarrierAndType(){
+    const carrier = document.querySelector('input[name="carrier"]:checked')?.value;
+    let type = 'home_delivery';
+    if (carrier === 'balikovna') {
+      type = document.querySelector('input[name="balikovna_mode"]:checked')?.value === 'pickup' ? 'pickup_point' : 'home_delivery';
+    } else if (carrier === 'ppl') {
+      type = document.querySelector('input[name="ppl_mode"]:checked')?.value === 'pickup' ? 'pickup_point' : 'home_delivery';
+    } else if (carrier === 'zasilkovna') {
+      type = 'pickup_point';
+    }
+    return { carrier, type };
+  }
+  function updateMethodId(){
+    const { carrier, type } = currentCarrierAndType();
+    hidMethod.value = findMethodId(carrier, type) || '';
+  }
+
+  // Dobírka dle metody
+  function updateCODState(){
+    const { carrier, type } = currentCarrierAndType();
+    const m = getMethod(carrier, type);
+    const codRadio = document.querySelector('input[name="payment_method"][value="cod"]');
+    const cardRadio = document.querySelector('input[name="payment_method"][value="card"]');
+    const note = $('#cod-note');
+    if (m && m.cod_supported) {
+      if (codRadio) codRadio.disabled = false;
+      note && note.classList.add('hidden');
+    } else {
+      if (codRadio) { codRadio.checked = false; codRadio.disabled = true; }
+      if (cardRadio) cardRadio.checked = true;
+      note && note.classList.remove('hidden');
+    }
+    markSelectedCards();
+  }
+
+  // ========== BALÍKOVNA ==========
+  const balOpen = $('#open-balikovna');
+  const balClose = $('#close-balikovna');
+  if (balOpen) balOpen.addEventListener('click', () => show($('#balikovna-modal')));
+  if (balClose) balClose.addEventListener('click', () => hide($('#balikovna-modal')));
+
+  window.addEventListener('message', (event) => {
+    const data = event.data;
+    if (!data) return;
+    if (data.message === 'pickerResult') {
+      const p = data.point || data;
+      const id = p?.id ?? '';
+      const name = p?.name || '';
+      const zip  = p?.zip || '';
+      const addr = p?.address || '';
+      const label = name && zip ? `${name}, ${zip}` : (name || addr || `Balíkovna ${id}`);
+      hidProv.value  = 'balikovna';
+      hidId.value    = String(id);
+      hidLabel.value = label;
+      const res = $('#balikovna-result'); if (res) res.textContent = 'Vybráno: ' + label;
+      hide($('#balikovna-modal'));
+    }
+  });
+
+  // ========== PPL - fallback PSČ ==========
+  async function pplLookup() {
+    const zip = ($('#ppl-zip')?.value || '').trim();
+    const listEl = $('#ppl-list');
+    const resEl  = $('#ppl-result');
+    if (!zip) { alert('Zadejte PSČ.'); return; }
+    listEl.innerHTML = '';
+    resEl.textContent = 'Hledám…';
+
+    const url = "{% url 'checkout:ppl_lookup' %}" + "?zip=" + encodeURIComponent(zip);
+    try {
+      const r = await fetch(url, { headers: {'X-Requested-With': 'XMLHttpRequest'} });
+      const data = await r.json();
+      if (!data.ok) throw new Error('Chyba vyhledávání');
+
+      if (!data.items || data.items.length === 0) {
+        resEl.textContent = 'Nebyly nalezeny žádné výdejny pro zadané PSČ.';
+        return;
+      }
+
+      resEl.textContent = `Nalezeno: ${data.items.length} výdejen`;
+      data.items.forEach(p => {
+        const div = document.createElement('div');
+        div.className = "border rounded p-3 flex items-center justify-between";
+        const label = [p.name, p.street, p.zip, p.city].filter(Boolean).join(', ');
+        div.innerHTML = `
+          <div class="text-sm">
+            <div class="font-medium">${p.name}</div>
+            <div class="text-gray-600">${p.street}, ${p.zip} ${p.city}</div>
+          </div>
+          <button type="button" class="px-3 py-2 border rounded hover:bg-gray-50">Vybrat</button>
+        `;
+        div.querySelector('button').addEventListener('click', () => {
+          hidProv.value  = 'ppl';
+          hidId.value    = String(p.id);
+          hidLabel.value = label || ('PPL ' + p.id);
+          resEl.textContent = 'Vybráno: ' + hidLabel.value;
+        });
+        listEl.appendChild(div);
+      });
+    } catch (e) {
+      resEl.textContent = 'Chyba při komunikaci se serverem.';
+    }
+  }
+  const pplBtn = $('#ppl-lookup-btn');
+  if (pplBtn) pplBtn.addEventListener('click', pplLookup);
+
+  // ========== ZÁSILKOVNA (PACKETA) ==========
+  const packetaApiKey = "{{ packeta_api_key|default:'197fd6840f332ccf' }}";
+  const packetaBtn = $('#open-packeta');
+  if (packetaBtn) packetaBtn.addEventListener('click', function(){
+    if (!window.Packeta || !Packeta.Widget?.pick) {
+      alert('Packeta widget není načten. Zkontrolujte https://widget.packeta.com/');
+      return;
+    }
+    Packeta.Widget.pick(packetaApiKey, function (point) {
+      if (!point) return;
+      const id = point?.id || point?.carrierPickupPointId || '';
+      const label = point?.name || point?.formattedValue || [point?.city, point?.street].filter(Boolean).join(', ');
+      hidProv.value  = 'zasilkovna';
+      hidId.value    = String(id);
+      hidLabel.value = label || ('Zásilkovna ' + id);
+      const res = $('#packeta-result'); if (res) res.textContent = 'Vybráno: ' + hidLabel.value;
+    }, { language: 'cs', view: 'modal' });
+  });
+
+  // Kliknutí na karty plateb = vizuální highlight
+  $$('input[name="payment_method"]').forEach(r => r.addEventListener('change', markSelectedCards));
+
+  // Validace před odesláním
+  $('#shipping-form').addEventListener('submit', function(e){
+    const { carrier, type } = currentCarrierAndType();
+    if (!hidMethod.value) { e.preventDefault(); alert('Chybí výběr dopravy. Zkuste prosím znovu.'); return; }
+    const needsPoint = (carrier === 'zasilkovna') || (carrier === 'balikovna' && type === 'pickup_point') || (carrier === 'ppl' && type === 'pickup_point');
+    if (needsPoint && !hidId.value) { e.preventDefault(); alert('Vyberte prosím výdejní místo.'); return; }
+  });
+
+  // Init
+  updateMethodId();
+  updateCODState();
+  markSelectedCards();
+})();
+</script>
+{% endblock %}

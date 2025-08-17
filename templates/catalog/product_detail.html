@@ -1,0 +1,36 @@
+{% extends "base.html" %}
+{% block title %}{{ product.name }} – Braidella{% endblock %}
+
+{% block content %}
+  <h2>{{ product.name }}</h2>
+
+  {% for img in product.images.all|slice:":1" %}
+    <div>
+      <img src="{{ img.image.url }}" alt="{{ img.alt_text|default:product.name }}"
+           style="max-width: 340px; height: auto; border: 1px solid #eee; border-radius: 6px;">
+    </div>
+  {% empty %}
+    <p><em>Zatím nemáme obrázek produktu.</em></p>
+  {% endfor %}
+
+  <p>
+    Kategorie: <a href="{% url 'catalog:category' product.category.slug %}">{{ product.category.name }}</a>
+  </p>
+
+  <p>
+    Cena: <strong>{{ product.price }} Kč</strong>
+  </p>
+
+  <form action="{% url 'cart:add' %}" method="post" style="margin-top: 8px">
+    {% csrf_token %}
+    <input type="hidden" name="product_id" value="{{ product.id }}">
+    <label>Množství:
+      <input type="number" name="qty" value="1" min="1" style="width:80px">
+    </label>
+    <button type="submit">Přidat do košíku</button>
+  </form>
+
+  <p style="margin-top: 12px;">
+    <a href="{% url 'catalog:category' product.category.slug %}">← Zpět do kategorie</a>
+  </p>
+{% endblock %}

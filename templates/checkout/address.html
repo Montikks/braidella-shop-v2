@@ -1,0 +1,151 @@
+{% extends "base.html" %}
+{% block title %}Pokladna – Adresa{% endblock %}
+{% block content %}
+  <h2>Pokladna – Adresa</h2>
+
+  <form method="post" id="addr-form">
+    {% csrf_token %}
+
+    <fieldset>
+      <legend>Kontaktní údaje</legend>
+      {{ form.first_name.label_tag }} {{ form.first_name }} {{ form.first_name.errors }}<br>
+      {{ form.last_name.label_tag }} {{ form.last_name }} {{ form.last_name.errors }}<br>
+      {{ form.email.label_tag }} {{ form.email }} {{ form.email.errors }}<br>
+      {{ form.phone.label_tag }} {{ form.phone }} {{ form.phone.errors }}
+    </fieldset>
+
+    <fieldset style="margin-top:12px">
+      <legend>Způsob doručení</legend>
+      {{ form.delivery_method }} {{ form.delivery_method.errors }}
+    </fieldset>
+
+    <div id="section-address" style="margin-top:12px">
+      <fieldset>
+        <legend>Doručení na adresu</legend>
+        {{ form.street.label_tag }} {{ form.street }} {{ form.street.errors }}<br>
+        {{ form.city.label_tag }} {{ form.city }} {{ form.city.errors }}<br>
+        {{ form.zip_code.label_tag }} {{ form.zip_code }} {{ form.zip_code.errors }}
+      </fieldset>
+    </div>
+
+    <div id="section-balikovna" style="margin-top:12px; display:none">
+      <fieldset>
+        <legend>Balíkovna</legend>
+        <p>{{ form.balikovna_id.label_tag }} {{ form.balikovna_id }} {{ form.balikovna_id.errors }}</p>
+        {{ form.balikovna_code.as_hidden }}  {# skryté pole pro skutečné ID #}
+        <p>
+          <button type="button" id="open-balikovna">Vybrat na mapě</button>
+        </p>
+        <p><small>Po výběru se pole vyplní a formulář se sám odešle.</small></p>
+      </fieldset>
+    </div>
+
+    <div id="section-ppl" style="margin-top:12px; display:none">
+      <fieldset>
+        <legend>PPL Parcelshop</legend>
+        <p>{{ form.ppl_id.label_tag }} {{ form.ppl_id }} {{ form.ppl_id.errors }}</p>
+        {{ form.ppl_code.as_hidden }}
+        <p>
+          <button type="button" id="open-ppl">Vybrat na mapě</button>
+        </p>
+        <p><small>Po výběru se pole vyplní a formulář se sám odešle.</small></p>
+      </fieldset>
+    </div>
+
+    <p style="margin-top:12px">
+      <button type="submit">Pokračovat na rekapitulaci →</button>
+      <a href="{% url 'cart:detail' %}" style="margin-left:8px">← Zpět do košíku</a>
+    </p>
+  </form>
+
+  <script>
+    function toggleSections() {
+      var method = document.querySelector('input[name="delivery_method"]:checked')?.value;
+      var addr = document.getElementById('section-address');
+      var bal = document.getElementById('section-balikovna');
+      var ppl = document.getElementById('section-ppl');
+      if (method === 'balikovna') {
+        addr.style.display = 'none';
+        bal.style.display = '';
+        ppl.style.display = 'none';
+      } else if (method === 'ppl') {
+        addr.style.display = 'none';
+        bal.style.display = 'none';
+        ppl.style.display = '';
+      } else {
+        addr.style.display = '';
+        bal.style.display = 'none';
+        ppl.style.display = 'none';
+      }
+    }
+    document.querySelectorAll('input[name="delivery_method"]').forEach(function(r){ r.addEventListener('change', toggleSections); });
+    toggleSections();
+
+    // Otevřít výběr Balíkovny
+    document.getElementById('open-balikovna')?.addEventListener('click', function(){
+      window.open("{% url 'checkout:balikovna_picker' %}", "balikovnaPicker", "width=960,height=800");
+    });
+
+    // Otevřít výběr PPL
+    document.getElementById('open-ppl')?.addEventListener('click', function(){
+      window.open("{% url 'checkout:ppl_picker' %}", "pplPicker", "width=960,height=800");
+    });
+
+    // Převzít vybranou pobočku z pickeru
+    window.addEventListener("message", function(e){
+      if (e.origin !== window.location.origin) return;            // přijímáme jen naši child stránku
+      if (!e.data || e.data.source !== "balikovna-picker") return;
+
+      var d = e.data.data || {};
+      var p = d.point || {};
+      var id = d.id || p.id || "";
+      var name = p.name || "";
+      var zip = p.zip || "";
+      var address = p.address || "";
+
+      // Sestav krátký popis (vejde se do 255 znaků)
+      var label = "";
+      if (name) { label += name; }
+      if (zip)  { label += (label ? " " : "") + "(" + zip + ")"; }
+      if (address) { label += (label ? ", " : "") + address; }
+      if (!label) { label = id || "Vybraná Balíkovna"; }
+
+      // Naplň formulář
+      var fieldText = document.getElementById("id_balikovna_id");
+      var fieldCode = document.getElementById("id_balikovna_code");
+      if (fieldText) fieldText.value = label.slice(0, 255);
+      if (fieldCode) fieldCode.value = id;
+
+      // přepnout dopravu na Balíkovnu a odeslat
+      var radio = document.querySelector('input[name="delivery_method"][value="balikovna"]');
+      if (radio) radio.checked = true;
+      toggleSections();
+      document.getElementById("addr-form").submit();
+    });
+
+    // Převzít vybranou PPL výdejnu z pickeru
+    window.addEventListener("message", function(e){
+      if (e.origin !== window.location.origin) return;
+      if (!e.data || e.data.source !== "ppl-picker") return;
+      var d = e.data.data || {};
+      var p = d.point || {};
+      var id = d.id || p.id || "";
+      var name = p.name || "";
+      var zip = p.zip || "";
+      var address = p.street ? (p.street + (p.city ? ", " + p.city : "")) : (p.address || "");
+      var label = "";
+      if (name) { label += name; }
+      if (zip)  { label += (label ? " " : "") + "(" + zip + ")"; }
+      if (address) { label += (label ? ", " : "") + address; }
+      if (!label) { label = id || "Vybraná PPL výdejna"; }
+      var fieldText = document.getElementById("id_ppl_id");
+      var fieldCode = document.getElementById("id_ppl_code");
+      if (fieldText) fieldText.value = label.slice(0, 255);
+      if (fieldCode) fieldCode.value = id;
+      var radio = document.querySelector('input[name="delivery_method"][value="ppl"]');
+      if (radio) radio.checked = true;
+      toggleSections();
+      document.getElementById("addr-form").submit();
+    });
+  </script>
+{% endblock %}

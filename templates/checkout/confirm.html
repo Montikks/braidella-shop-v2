@@ -1,0 +1,123 @@
+{% extends "base.html" %}
+{% load static %}
+{% block title %}Potvrzení objednávky | Braidella{% endblock %}
+
+{% block content %}
+<h1 class="text-2xl font-semibold mb-6">Potvrzení objednávky</h1>
+
+<div class="grid lg:grid-cols-3 gap-8">
+  <!-- Levý sloupec: rekapitulace -->
+  <div class="lg:col-span-2 space-y-6">
+
+    <!-- Kontaktní údaje -->
+    <section class="border rounded-lg p-4">
+      <h2 class="text-lg font-medium mb-3">Kontaktní údaje</h2>
+      <div class="grid sm:grid-cols-2 gap-3 text-sm">
+        <div><span class="text-gray-500">Jméno a příjmení:</span> <span class="font-medium">{{ order.full_name|default:"—" }}</span></div>
+        <div><span class="text-gray-500">E‑mail:</span> <span class="font-medium">{{ order.email|default:"—" }}</span></div>
+        <div><span class="text-gray-500">Telefon:</span> <span class="font-medium">{{ order.phone|default:"—" }}</span></div>
+        <div><span class="text-gray-500">PSČ:</span> <span class="font-medium">{{ order.zip_code|default:"—" }}</span></div>
+        <div class="sm:col-span-2"><span class="text-gray-500">Ulice a město:</span> <span class="font-medium">{{ order.street|default:"—" }}, {{ order.city|default:"—" }}</span></div>
+        {% if order.note %}
+          <div class="sm:col-span-2"><span class="text-gray-500">Poznámka:</span> <span class="font-medium">{{ order.note }}</span></div>
+        {% endif %}
+      </div>
+      <a href="{% url 'checkout:shipping' %}" class="inline-block mt-3 text-sm underline">Změnit dopravu/platbu</a>
+    </section>
+
+    <!-- Doprava a platba -->
+    <section class="border rounded-lg p-4">
+      <h2 class="text-lg font-medium mb-3">Doprava a platba</h2>
+      <div class="grid sm:grid-cols-2 gap-3 text-sm">
+        <div>
+          <div class="text-gray-500">Doprava</div>
+          <div class="font-medium">
+            {% if method_obj %}
+              {{ method_obj.name }} — {{ method_obj.price }} Kč
+            {% else %}
+              {{ order.shipping_method|default:"Nezvoleno" }}
+            {% endif %}
+          </div>
+          {% if order.pickup_point_label %}
+            <div class="text-gray-500 mt-1">Výdejní místo</div>
+            <div class="font-medium">{{ order.pickup_point_label }}</div>
+          {% endif %}
+        </div>
+        <div>
+          <div class="text-gray-500">Platba</div>
+          <div class="font-medium">
+            {% if order.payment_method == 'card' %}Kartou online (GoPay)
+            {% elif order.payment_method == 'cod' %}Dobírka
+            {% else %}Nezvoleno{% endif %}
+          </div>
+          {% if cod_fee and cod_fee > 0 %}
+            <div class="text-xs text-gray-600 mt-1">Dobírkový poplatek: {{ cod_fee }} Kč</div>
+          {% endif %}
+        </div>
+      </div>
+    </section>
+
+    <!-- Položky objednávky -->
+    <section class="border rounded-lg p-4">
+      <h2 class="text-lg font-medium mb-3">Položky v objednávce</h2>
+      <div class="divide-y">
+        {% for it in items %}
+          <div class="py-3 flex items-center gap-3">
+            <div class="w-16 h-16 bg-gray-50 rounded overflow-hidden flex-shrink-0">
+              {% if it.product and it.product.image %}
+                <img src="{{ it.product.image.url }}" alt="{{ it.name }}" class="w-full h-full object-cover">
+              {% else %}
+                <img src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/img/product/1.jpg' %}" class="w-full h-full object-cover" alt="">
+              {% endif %}
+            </div>
+            <div class="flex-1 min-w-0">
+              <div class="font-medium truncate">{{ it.name }}</div>
+              <div class="text-sm text-gray-600">Množství: {{ it.qty }}</div>
+            </div>
+            <div class="text-right">
+              <div class="text-sm text-gray-600">{{ it.price }} Kč / ks</div>
+              <div class="font-semibold">{{ it.line_total }} Kč</div>
+            </div>
+          </div>
+        {% empty %}
+          <div class="py-6 text-gray-500">Žádné položky.</div>
+        {% endfor %}
+      </div>
+    </section>
+  </div>
+
+  <!-- Pravý sloupec: součty a dokončení -->
+  <div class="lg:col-span-1">
+    <section class="border rounded-lg p-4">
+      <h2 class="text-lg font-medium mb-3">Souhrn ceny</h2>
+      <div class="space-y-2 text-sm">
+        <div class="flex justify-between"><span>Mezisoučet</span><span class="font-medium">{{ order.subtotal }} Kč</span></div>
+        <div class="flex justify-between"><span>Doprava</span><span class="font-medium">{{ order.shipping_price|default:"0.00" }} Kč</span></div>
+        {% if cod_fee and cod_fee > 0 %}
+          <div class="flex justify-between"><span>Dobírka</span><span class="font-medium">{{ cod_fee }} Kč</span></div>
+        {% endif %}
+        <hr class="my-2">
+        <div class="flex justify-between text-base">
+          <span class="font-semibold">Celkem k úhradě</span>
+          <span class="font-semibold">{{ grand_total }} Kč</span>
+        </div>
+      </div>
+
+      <form method="post" class="mt-4">
+        {% csrf_token %}
+        <button class="w-full px-5 py-3 bg-gray-900 text-white rounded hover:bg-gray-800">
+          Dokončit objednávku
+        </button>
+      </form>
+
+      {% if order.payment_method == 'card' %}
+        <p class="mt-3 text-xs text-gray-600">
+          Platba kartou: po kliknutí vás v dalším kroku přesměrujeme na platební bránu GoPay (připojíme hned v dalších krocích).
+        </p>
+      {% endif %}
+
+      <a href="{% url 'checkout:shipping' %}" class="inline-block mt-4 text-sm underline">Zpět na dopravu a platbu</a>
+    </section>
+  </div>
+</div>
+{% endblock %}
