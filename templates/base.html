@@ -1,32 +1,85 @@
-<!doctype html>
+{#
+  Custom base template for Braidella e‑shop.
+  Tato šablona využívá styly ze šablony Blueberry (Tailwind CSS). V hlavičce
+  načítáme potřebné CSS/JS a definujeme základní layout s headerem,
+  navigací, hlavním obsahem a patičkou. Dědí z ní všechny ostatní stránky.
+#}
+
+<!DOCTYPE html>
 <html lang="cs">
 <head>
+  {# Načtení tagu static pro načítání souborů z app/static #}
+  {% load static %}
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>{% block title %}Braidella{% endblock %}</title>
-</head>
-<body>
-  <header>
-      {% if messages %}
-  <ul>{% for message in messages %}<li>{{ message }}</li>{% endfor %}</ul>
-{% endif %}
-  <h1><a href="/">Braidella</a></h1>
-  <nav>
-    <a href="/">Domů</a> |
-    <a href="/k/">Kategorie</a> |
-    <a href="/cart/">Košík</a> |
-    <a href="/admin/">Admin</a>
-  </nav>
-  <hr/>
-</header>
 
-  <main>
+  {# Blueberry CSS assets. Cesty vycházejí ze složky static/blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind #}
+  <link rel="stylesheet" href="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/css/style.css' %}" />
+  <link rel="stylesheet" href="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/css/vendor/remixicon.css' %}" />
+  <link rel="stylesheet" href="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/css/vendor/aos.css' %}" />
+  <link rel="stylesheet" href="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/css/vendor/swiper-bundle.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/css/vendor/owl.carousel.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/css/vendor/slick.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/css/vendor/animate.min.css' %}" />
+  <link rel="stylesheet" href="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/css/vendor/jquery-range-ui.css' %}" />
+
+  {# Tailwind runtime for dynamic utility classes (CDN fallback). #}
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/tailwindcss3.4.5.js' %}"></script>
+
+  {# Možné vlastní přepisy stylů #}
+  <link rel="stylesheet" href="{% static 'overrides.css' %}" />
+
+  {% block extra_head %}{% endblock %}
+</head>
+
+<body class="font-Poppins bg-white text-gray-800">
+  {# Header with logo and navigation. Styling inspirováno Blueberry, ale zjednodušeno. #}
+  <header class="border-b border-gray-200">
+    <div class="container mx-auto flex flex-wrap justify-between items-center py-4 px-4">
+      <a href="/" class="flex items-center gap-2">
+        <img src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/img/logo/logo.png' %}" alt="logo" class="h-8">
+        <span class="text-xl font-semibold">Braidella</span>
+      </a>
+      <nav class="flex gap-6 text-sm">
+        <a href="/" class="hover:text-indigo-600 transition-colors">Domů</a>
+        <a href="/k/" class="hover:text-indigo-600 transition-colors">Kategorie</a>
+        <a href="/cart/" class="hover:text-indigo-600 transition-colors">Košík</a>
+        <a href="/admin/" class="hover:text-indigo-600 transition-colors">Admin</a>
+      </nav>
+    </div>
+  </header>
+
+  {# Messages #}
+  {% if messages %}
+    <div class="container mx-auto px-4 py-2">
+      <ul class="bg-yellow-50 border-l-4 border-yellow-400 p-4 rounded text-sm">
+        {% for message in messages %}
+          <li>{{ message }}</li>
+        {% endfor %}
+      </ul>
+    </div>
+  {% endif %}
+
+  <main class="container mx-auto px-4 py-6">
     {% block content %}{% endblock %}
   </main>
 
-  <footer>
-    <hr/>
-    <small>&copy; {{ now|default:"" }} Braidella</small>
+  <footer class="border-t border-gray-200 py-6 mt-8">
+    <div class="container mx-auto px-4 text-center text-sm text-gray-600">
+      &copy; {{ now|date:"Y" }} Braidella – Všechna práva vyhrazena.
+    </div>
   </footer>
+
+  {# Blueberry JS dependencies. Jsou potřeba jen na některých stránkách, ale nevadí je načíst globálně. #}
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/aos.js' %}"></script>
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/swiper-bundle.min.js' %}"></script>
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/jquery.min.js' %}"></script>
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/jquery.range-ui.js' %}"></script>
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/owl.carousel.min.js' %}"></script>
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/slick.min.js' %}"></script>
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/isotope.pkgd.min.js' %}"></script>
+  <script src="{% static 'blueberry/Blueberry - eCommerce Tailwind CSS Template/blueberry-tailwind/assets/js/vendor/aos-init.js' %}"></script>
+  {% block extra_scripts %}{% endblock %}
 </body>
 </html>

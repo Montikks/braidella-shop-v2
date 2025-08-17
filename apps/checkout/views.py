@@ -9,10 +9,17 @@ from apps.orders.models import Order, OrderItem
 from apps.shipping.models import ShippingMethod
 from apps.cart.views import Cart
 
+
+# Cena za dobírku (platba při převzetí)
 COD_FEE = Decimal("39.00")
 
 
 def checkout(request):
+    """
+    První krok pokladny – zadání kontaktních údajů.
+    Pokud je košík prázdný, přesměruje zpět do košíku.
+    Při POST uloží data do nové objednávky a přesune uživatele na výběr dopravy.
+    """
     cart = Cart(request)
     if cart.count() == 0:
         messages.info(request, "Košík je prázdný.")
@@ -54,6 +61,9 @@ def checkout(request):
 
 
 def _get_or_bootstrap_order_from_session(request, cart: Cart):
+    """
+    Najde existující neodeslanou objednávku uloženou v session nebo vytvoří novou.
+    """
     order = None
     order_id = request.session.get("current_order_id")
     if order_id:
@@ -82,6 +92,10 @@ def _get_or_bootstrap_order_from_session(request, cart: Cart):
 
 
 def shipping(request):
+    """
+    Druhý krok pokladny – výběr dopravy a platby.
+    Zobrazí dostupné metody z modelu ShippingMethod a uloží volbu do objednávky.
+    """
     cart = Cart(request)
     if cart.count() == 0:
         messages.info(request, "Košík je prázdný.")
@@ -136,12 +150,20 @@ def shipping(request):
 
 
 def confirm_placeholder(request):
+    """
+    Představuje krok potvrzení objednávky. Bude později nahrazen plnohodnotnou stránkou.
+    """
     return render(request, "checkout/confirm_placeholder.html", {})
 
 
-# ======================
-#  Fallback PPL výdejny
-# ======================
+def ppl_picker(request):
+    """
+    Stránka s widgetem PPL. Otevře mapu PPL v samostatném okně a po výběru výdejny
+    odešle zprávu do nadřazeného okna. Tato view pouze renderuje šablonu.
+    """
+    return render(request, "checkout/ppl_picker.html", {})
+
+
 def ppl_lookup(request):
     """
     Jednoduchý fallback bez externího API.

@@ -125,8 +125,12 @@
         <div id="ppl-home-summary" class="text-xs text-gray-700"></div>
       </div>
 
-      <!-- Výdejní místo: fallback vyhledávání podle PSČ -->
+      <!-- Výdejní místo: PPL – možnost výběru pomocí oficiálního widgetu i fallback vyhledávání podle PSČ -->
       <div class="ppl-pickup hidden">
+        <!-- Tlačítko pro otevření PPL widgetu v novém okně -->
+        <button type="button" id="open-ppl" class="mb-3 px-4 py-2 border rounded hover:bg-gray-50">
+          Vybrat výdejní místo PPL
+        </button>
         <div class="flex items-end gap-3">
           <div>
             <label class="text-sm text-gray-700">PSČ</label>
@@ -332,7 +336,7 @@
     markSelectedCards();
   }
 
-  // ========== BALÍKOVNA ==========
+   // ========== BALÍKOVNA ==========
   const balOpen = $('#open-balikovna');
   const balClose = $('#close-balikovna');
   if (balOpen) balOpen.addEventListener('click', () => show($('#balikovna-modal')));
@@ -354,7 +358,18 @@
       const res = $('#balikovna-result'); if (res) res.textContent = 'Vybráno: ' + label;
       hide($('#balikovna-modal'));
     }
-  });
+      // Zpracování vybrané pobočky z PPL widgetu
+      if (data.source === 'ppl-picker' && data.data && data.data.event === 'pplPickupPointSelected') {
+        const p = data.data.pickupPoint || data.data;
+        const id = p?.id || '';
+        const name = p?.name || '';
+        const label = p?.label || [p?.city, p?.street].filter(Boolean).join(', ');
+        hidProv.value  = 'ppl';
+        hidId.value    = String(id);
+        hidLabel.value = label || ('PPL ' + id);
+        const res = $('#ppl-result'); if (res) res.textContent = 'Vybráno: ' + hidLabel.value;
+      }
+    });
 
   // ========== PPL - fallback PSČ ==========
   async function pplLookup() {
@@ -421,6 +436,16 @@
       const res = $('#packeta-result'); if (res) res.textContent = 'Vybráno: ' + hidLabel.value;
     }, { language: 'cs', view: 'modal' });
   });
+
+   // ====== PPL (widget) ======
+   const openPpl = $('#open-ppl');
+   if (openPpl) {
+     openPpl.addEventListener('click', function(){
+       // otevře PPL picker v novém okně; route checkout:ppl_picker musí existovat
+       const url = "{% url 'checkout:ppl_picker' %}";
+       window.open(url, '_blank', 'width=950,height=700');
+     });
+   }
 
   // Kliknutí na karty plateb = vizuální highlight
   $$('input[name="payment_method"]').forEach(r => r.addEventListener('change', markSelectedCards));
